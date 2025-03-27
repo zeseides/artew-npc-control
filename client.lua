@@ -2,45 +2,60 @@
 -- Oyuncu ve Oyuncuların Araçlarını Koruyan Geliştirilmiş Versiyon
 
 -- Genel Ayarlar
-local VehicleDensityMultiplier, PedDensityMultiplier = 0.1, 0.2 -- Daha düşük yoğunluk
-local DisableCops, DisableDispatch = true, true
+local VehicleDensityMultiplier = Config.VehicleDensityMultiplier
+local PedDensityMultiplier = Config.PedDensityMultiplier
+local DisableCops = Config.DisableCops
+local DisableDispatch = Config.DisableDispatch
 local lastVehicleDensity, lastPedDensity = -1, -1
 local syncedVehicles = {} -- Senkronize edilmiş araçları takip etmek için
 
 -- Spawn Mesafeleri ve Limitler
-local vehicleSpawnDistance, pedSpawnDistance = 30.0, 25.0 -- Daha kısa mesafe
-local maxVehiclesInArea, maxPedsInArea = 5, 8 -- Daha az NPC ve araç
+local vehicleSpawnDistance = Config.VehicleSpawnDistance
+local pedSpawnDistance = Config.PedSpawnDistance
+local maxVehiclesInArea = Config.MaxVehiclesInArea
+local maxPedsInArea = Config.MaxPedsInArea
 
 -- Durağan Oyuncu için Ekstra Ayarlar
-local playerStaticThreshold = 5.0 -- Oyuncu bu mesafeden az hareket ettiğinde durağan kabul edilir
-local staticPositionMultiplier = 0.5 -- Durağan konumdayken density'i bu kadar azalt
+local playerStaticThreshold = Config.PlayerStaticThreshold
+local staticPositionMultiplier = Config.StaticPositionMultiplier
 local lastPlayerPosition = vector3(0, 0, 0)
 local isPlayerStatic = false
 local staticCheckTimer = 0
-local STATIC_CHECK_INTERVAL = 2000 -- 2 saniye
+local STATIC_CHECK_INTERVAL = Config.StaticCheckInterval
 
 -- Önbellek Sistemi
 local entityCache = {
     vehicles = {},
     peds = {},
     lastCleanup = 0,
-    maxSize = 100 -- Maksimum önbellek boyutu
+    maxSize = Config.MaxCacheSize
 }
 
 -- Temizleme Zamanlayıcıları
-local cleanupTime = 8000 -- 8 saniye (daha hızlı temizleme)
-local cacheCleanupInterval = 25000 -- 25 saniye (daha sık önbellek temizleme)
+local cleanupTime = Config.CleanupTime
+local cacheCleanupInterval = Config.CacheCleanupInterval
 local invisibleVehicleTimers, invisiblePedTimers = {}, {}
 
 -- Performans Optimizasyonu için Sabitler
-local THREAD_SLEEP_VEHICLE = 2500 -- Ana döngü bekleme süresi
-local THREAD_SLEEP_PED = 3000
-local FADE_STEP = 35 -- Daha hızlı fade out
-local FADE_WAIT = 30 -- Daha hızlı fade bekleme
+local THREAD_SLEEP_VEHICLE = Config.ThreadSleepVehicle
+local THREAD_SLEEP_PED = Config.ThreadSleepPed
+local FADE_STEP = Config.FadeStep
+local FADE_WAIT = Config.FadeWait
 
 -- OYUNCU ARAÇLARI İÇİN GÜVENLİK SİSTEMİ
 local protectedVehicles = {} -- Korunacak araçların listesi
 local playerVehicleChecksCounter = 0
+
+-- Debug Değişkenleri
+local debugMode = Config.DebugMode
+local debugLogLevel = Config.DebugLogLevel
+
+-- Debug Log Fonksiyonu
+local function DebugLog(message, level)
+    if not debugMode then return end
+    if level > debugLogLevel then return end
+    print(string.format("^2[Artew-NPC-Control] ^7%s", message))
+end
 
 -- Entity Kontrol Fonksiyonu (Geliştirilmiş)
 local function IsEntityValid(entity)
@@ -53,6 +68,8 @@ end
 
 -- Önbellek Yönetimi
 local function UpdateEntityCache(entityType, entityId, data)
+    if not Config.EnableCache then return end
+    
     if not entityCache[entityType] then
         entityCache[entityType] = {}
     end
@@ -122,44 +139,60 @@ end
 
 -- FPS ve Durağan Durum Bazlı Yoğunluk Optimizasyonu
 local function AdjustDensityBasedOnConditions(playerCoords)
-    local fps = 1.0 / GetFrameTime()
-    local baseVehicleDensity, basePedDensity
+    if not Config.EnableDensityAdjustment then return end
     
-    -- FPS bazlı yoğunluk ayarı
-    if fps < 30 then
-        baseVehicleDensity, basePedDensity = 0.05, 0.1
-    elseif fps < 50 then
-        baseVehicleDensity, basePedDensity = 0.08, 0.15
-    else
-        baseVehicleDensity, basePedDensity = 0.1, 0.2
-    end
+    -- Manuel yoğunluk ayarları kullanılıyor
+    local currentVehicleDensity = VehicleDensityMultiplier
+    local currentPedDensity = PedDensityMultiplier
     
     -- Oyuncu durağan mı kontrol et ve ona göre yoğunluğu ayarla
-    if CheckPlayerStatic(playerCoords) then
-        VehicleDensityMultiplier = baseVehicleDensity * staticPositionMultiplier
-        PedDensityMultiplier = basePedDensity * staticPositionMultiplier
+    if Config.EnableStaticCheck and CheckPlayerStatic(playerCoords) then
+        currentVehicleDensity = currentVehicleDensity * staticPositionMultiplier
+        currentPedDensity = currentPedDensity * staticPositionMultiplier
+    end
+    
+    -- Native fonksiyonlarla yoğunluğu ayarla
+    SetParkedVehicleDensityMultiplierThisFrame(currentVehicleDensity)
+    SetVehicleDensityMultiplierThisFrame(currentVehicleDensity)
+    SetRandomVehicleDensityMultiplierThisFrame(currentVehicleDensity)
+    SetPedDensityMultiplierThisFrame(currentPedDensity)
+    SetScenarioPedDensityMultiplierThisFrame(currentPedDensity, currentPedDensity)
+    
+    -- Ek yoğunluk kontrolleri
+    SetAmbientVehicleRangeMultiplierThisFrame(currentVehicleDensity)
+    SetAmbientPedRangeMultiplierThisFrame(currentPedDensity)
+    
+    -- Trafik yoğunluğunu kontrol et
+    SetVehicleModelIsSuppressed(GetHashKey("taco"), currentVehicleDensity == 0)
+    SetVehicleModelIsSuppressed(GetHashKey("biff"), currentVehicleDensity == 0)
+    SetVehicleModelIsSuppressed(GetHashKey("hauler"), currentVehicleDensity == 0)
+    SetVehicleModelIsSuppressed(GetHashKey("phantom"), currentVehicleDensity == 0)
+    SetVehicleModelIsSuppressed(GetHashKey("pounder"), currentVehicleDensity == 0)
+    
+    -- NPC spawn kontrolü
+    if currentPedDensity == 0 then
+        SetPedPopulationBudget(0)
     else
-        VehicleDensityMultiplier = baseVehicleDensity
-        PedDensityMultiplier = basePedDensity
+        SetPedPopulationBudget(3)
     end
     
-    -- Native fonksiyonlarla yoğunluğu ayarla (eğer değer değiştiyse)
-    if VehicleDensityMultiplier ~= lastVehicleDensity then
-        SetParkedVehicleDensityMultiplier(VehicleDensityMultiplier)
-        SetVehicleDensityMultiplier(VehicleDensityMultiplier)
-        SetRandomVehicleDensityMultiplier(VehicleDensityMultiplier)
-        lastVehicleDensity = VehicleDensityMultiplier
-    end
-    
-    if PedDensityMultiplier ~= lastPedDensity then
-        SetPedDensityMultiplier(PedDensityMultiplier)
-        SetScenarioPedDensityMultiplier(PedDensityMultiplier, PedDensityMultiplier)
-        lastPedDensity = PedDensityMultiplier
+    -- Araç spawn kontrolü
+    if currentVehicleDensity == 0 then
+        SetVehiclePopulationBudget(0)
+    else
+        SetVehiclePopulationBudget(3)
     end
 end
 
 -- Yavaşça Silme Fonksiyonu
 local function FadeOutEntity(entity)
+    if not Config.EnableFadeEffect then
+        if DoesEntityExist(entity) then
+            DeleteEntity(entity)
+        end
+        return true
+    end
+    
     if IsEntityValid(entity) then
         -- Son bir kez daha oyuncu aracı kontrolü
         if entity ~= nil and GetEntityType(entity) == 2 then -- Araç türü
@@ -169,7 +202,13 @@ local function FadeOutEntity(entity)
             local plate = GetVehicleNumberPlateText(entity) or "unknown"
             
             -- Eğer korunan bir araç ise silme işlemini iptal et
-            if protectedVehicles[netId] or protectedVehicles[plate] then
+            if Config.ProtectPlayerVehicles and (protectedVehicles[netId] or protectedVehicles[plate]) then
+                return false
+            end
+            
+            -- Araç sınıfı kontrolü
+            local vehClass = GetVehicleClass(entity)
+            if Config.ProtectedVehicleClasses[vehClass] then
                 return false
             end
             
@@ -192,6 +231,17 @@ local function FadeOutEntity(entity)
                 protectedVehicles[plate] = true
                 return false
             end
+        end
+        
+        -- NPC kontrolü
+        if Config.ProtectPlayerPeds and IsPedAPlayer(entity) then
+            return false
+        end
+        
+        -- NPC tipi kontrolü
+        local pedType = GetPedType(entity)
+        if Config.ProtectedPedTypes[pedType] then
+            return false
         end
         
         -- Orijinal silme işlemi
