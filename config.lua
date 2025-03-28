@@ -1,63 +1,63 @@
 Config = {}
 
--- NPC ve Araç Yoğunluğu Ayarları
-Config.VehicleDensityMultiplier = 0.0 -- Araç yoğunluğu (0.0 - 1.0 arası)
-Config.PedDensityMultiplier = 0.0 -- NPC yoğunluğu (0.0 - 1.0 arası)
+-- NPC and Vehicle Density Settings
+Config.VehicleDensityMultiplier = 0.0 -- Vehicle density (0.0 to 1.0)
+Config.PedDensityMultiplier = 0.0 -- NPC density (0.0 to 1.0)
 
--- Durağan Durum Ayarları
-Config.PlayerStaticThreshold = 5.0 -- Oyuncu bu mesafeden az hareket ettiğinde durağan kabul edilir
-Config.StaticPositionMultiplier = 0.5 -- Durağan konumdayken density'i bu kadar azalt
+-- Static State Settings
+Config.PlayerStaticThreshold = 5.0 -- A player is considered stationary if he moves less than this distance
+Config.StaticPositionMultiplier = 0.5 -- When stationary, reduce density by this much
 
--- Performans Ayarları
-Config.ThreadSleepVehicle = 2500 -- Araç yönetimi için bekleme süresi
-Config.ThreadSleepPed = 3000 -- NPC yönetimi için bekleme süresi
-Config.FadeStep = 35 -- Fade out adımı
-Config.FadeWait = 30 -- Fade bekleme süresi
+-- Performance Settings
+Config.ThreadSleepVehicle = 2500 -- Waiting time for vehicle management
+Config.ThreadSleepPed = 3000 -- Waiting time for NPC management
+Config.FadeStep = 35 -- Fade out step
+Config.FadeWait = 30 -- Fade wait time
 
--- Temizleme Ayarları
-Config.CleanupTime = 8000 -- 8 saniye (daha hızlı temizleme)
-Config.CacheCleanupInterval = 25000 -- 25 saniye (daha sık önbellek temizleme)
+-- Cleanup Settings
+Config.CleanupTime = 8000 -- 8 seconds (faster cleaning)
+Config.CacheCleanupInterval = 25000 -- 25 seconds (more frequent cache cleanup)
 
--- Spawn Mesafeleri ve Limitler
-Config.VehicleSpawnDistance = 30.0 -- Araç spawn mesafesi
-Config.PedSpawnDistance = 25.0 -- NPC spawn mesafesi
-Config.MaxVehiclesInArea = 5 -- Maksimum araç sayısı
-Config.MaxPedsInArea = 8 -- Maksimum NPC sayısı
+-- Spawn Distances and Limits
+Config.VehicleSpawnDistance = 30.0 -- Vehicle spawn distance
+Config.PedSpawnDistance = 25.0 -- NPC spawn distance
+Config.MaxVehiclesInArea = 5 -- Maximum number of vehicles
+Config.MaxPedsInArea = 8 -- Maximum number of NPCs
 
--- Polis ve Dispatch Ayarları
-Config.DisableCops = true -- Polisleri devre dışı bırak
-Config.DisableDispatch = true -- Dispatch servislerini devre dışı bırak
+-- Police and Dispatch Settings
+Config.DisableCops = true -- Disable the cops
+Config.DisableDispatch = true -- Disable dispatch services
 
--- Önbellek Ayarları
-Config.MaxCacheSize = 100 -- Maksimum önbellek boyutu
+-- Cache Settings
+Config.MaxCacheSize = 100 -- Maximum cache size
 
--- Statik Kontrol Aralığı
-Config.StaticCheckInterval = 2000 -- 2 saniye
+-- Static Check Interval
+Config.StaticCheckInterval = 2000 -- 2 seconds
 
--- Yeni Eklenen Ayarlar
-Config.EnableFadeEffect = true -- Fade efektini aktif/pasif yap
-Config.ProtectPlayerVehicles = true -- Oyuncu araçlarını koru
-Config.ProtectPlayerPeds = true -- Oyuncu NPC'lerini koru
-Config.EnableCache = true -- Önbellek sistemini aktif/pasif yap
-Config.EnableStaticCheck = true -- Durağan durum kontrolünü aktif/pasif yap
-Config.EnableDensityAdjustment = true -- Yoğunluk ayarlamalarını aktif/pasif yap
+-- New Added Settings
+Config.EnableFadeEffect = true -- Enable/disable fade effect
+Config.ProtectPlayerVehicles = true -- Protect player vehicles
+Config.ProtectPlayerPeds = true -- Protect player NPCs
+Config.EnableCache = true -- Enable/disable cache system
+Config.EnableStaticCheck = true -- Enable/disable static check
+Config.EnableDensityAdjustment = true -- Enable/disable density adjustment
 
--- Araç Sınıfları için Özel Ayarlar
+-- Special Settings for Vehicle Classes
 Config.ProtectedVehicleClasses = {
-    [18] = true, -- Acil durum araçları
-    [19] = true, -- Polis araçları
-    [15] = true  -- Ticari araçlar
+    [18] = true, -- Emergency vehicles
+    [19] = true, -- Police vehicles
+    [15] = true  -- Commercial vehicles
 }
 
--- NPC Sınıfları için Özel Ayarlar
+-- Special Settings for Ped Types
 Config.ProtectedPedTypes = {
-    [6] = true, -- Polis
-    [7] = true, -- Acil durum personeli
-    [8] = true  -- Özel NPC'ler
+    [6] = true, -- Police
+    [7] = true, -- Emergency
+    [8] = true  -- Special NPCs
 }
 
--- Debug Modu
-Config.DebugMode = true -- Debug modunu aktif/pasif yap
-Config.DebugLogLevel = 1 -- Debug log seviyesi (1: Sadece hatalar, 2: Tüm loglar)
+-- Debug Mode
+Config.DebugMode = true -- Enable/disable debug mode
+Config.DebugLogLevel = 1 -- Debug log level (1: Only errors, 2: All logs)
 
 return Config 

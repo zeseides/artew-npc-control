@@ -18,7 +18,7 @@ local function checkVersion()
             
             if currentVersion ~= latestVersion then
                 print('^3╔════════════════════════════════════════════╗^7')
-                print('^3║            GÜNCELLEME MEVCUT!              ║^7')
+                print('^3║            UPDATE AVAILABLE!               ║^7')
                 print('^3║ Current version: ' .. string.format('%-24s', currentVersion) .. ' ║^7')
                 print('^3║ New version: ' .. string.format('%-26s', latestVersion) .. ' ║^7')
                 print('^3║ For updates:                               ║^7')

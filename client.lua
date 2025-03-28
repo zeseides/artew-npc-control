@@ -1,21 +1,21 @@
--- FPS Dostu Araç ve NPC Yönetimi
--- Oyuncu ve Oyuncuların Araçlarını Koruyan Geliştirilmiş Versiyon
 
--- Genel Ayarlar
+-- Players Vehicles Protection Enhanced Version  
+
+-- General Settings
 local VehicleDensityMultiplier = Config.VehicleDensityMultiplier
 local PedDensityMultiplier = Config.PedDensityMultiplier
 local DisableCops = Config.DisableCops
 local DisableDispatch = Config.DisableDispatch
 local lastVehicleDensity, lastPedDensity = -1, -1
-local syncedVehicles = {} -- Senkronize edilmiş araçları takip etmek için
+local syncedVehicles = {} -- For tracking synced vehicles
 
--- Spawn Mesafeleri ve Limitler
+-- Spawn Distances and Limits
 local vehicleSpawnDistance = Config.VehicleSpawnDistance
 local pedSpawnDistance = Config.PedSpawnDistance
 local maxVehiclesInArea = Config.MaxVehiclesInArea
 local maxPedsInArea = Config.MaxPedsInArea
 
--- Durağan Oyuncu için Ekstra Ayarlar
+-- Extra Settings for Static Player
 local playerStaticThreshold = Config.PlayerStaticThreshold
 local staticPositionMultiplier = Config.StaticPositionMultiplier
 local lastPlayerPosition = vector3(0, 0, 0)
@@ -23,7 +23,7 @@ local isPlayerStatic = false
 local staticCheckTimer = 0
 local STATIC_CHECK_INTERVAL = Config.StaticCheckInterval
 
--- Önbellek Sistemi
+-- Cache System
 local entityCache = {
     vehicles = {},
     peds = {},
@@ -31,42 +31,42 @@ local entityCache = {
     maxSize = Config.MaxCacheSize
 }
 
--- Temizleme Zamanlayıcıları
+-- Cleanup Timers
 local cleanupTime = Config.CleanupTime
 local cacheCleanupInterval = Config.CacheCleanupInterval
 local invisibleVehicleTimers, invisiblePedTimers = {}, {}
 
--- Performans Optimizasyonu için Sabitler
+-- Constants for Performance Optimization
 local THREAD_SLEEP_VEHICLE = Config.ThreadSleepVehicle
 local THREAD_SLEEP_PED = Config.ThreadSleepPed
 local FADE_STEP = Config.FadeStep
 local FADE_WAIT = Config.FadeWait
 
--- OYUNCU ARAÇLARI İÇİN GÜVENLİK SİSTEMİ
-local protectedVehicles = {} -- Korunacak araçların listesi
+-- Player Vehicles Security System
+local protectedVehicles = {} -- List of protected vehicles
 local playerVehicleChecksCounter = 0
 
--- Debug Değişkenleri
+-- Debug Variables
 local debugMode = Config.DebugMode
 local debugLogLevel = Config.DebugLogLevel
 
--- Debug Log Fonksiyonu
+-- Debug Log Function
 local function DebugLog(message, level)
     if not debugMode then return end
     if level > debugLogLevel then return end
     print(string.format("^2[Artew-NPC-Control] ^7%s", message))
 end
 
--- Entity Kontrol Fonksiyonu (Geliştirilmiş)
+-- Entity Control Function (Enhanced)
 local function IsEntityValid(entity)
     if entity == nil or entity == 0 or not DoesEntityExist(entity) then 
         return false 
     end
-    -- Networked olup olmadığını kontrol et
+    -- Check if networked
     return NetworkGetEntityIsNetworked(entity)
 end
 
--- Önbellek Yönetimi
+-- Cache Management
 local function UpdateEntityCache(entityType, entityId, data)
     if not Config.EnableCache then return end
     
@@ -74,14 +74,14 @@ local function UpdateEntityCache(entityType, entityId, data)
         entityCache[entityType] = {}
     end
     
-    -- Önbellek boyutu kontrolü
+    -- Cache size check
     local cacheSize = 0
     for _ in pairs(entityCache[entityType]) do
         cacheSize = cacheSize + 1
     end
     
     if cacheSize >= entityCache.maxSize then
-        -- En eski girdiyi sil
+        -- Delete oldest entry
         local oldestTime = GetGameTimer()
         local oldestId = nil
         for id, entry in pairs(entityCache[entityType]) do
@@ -121,11 +121,11 @@ local function CleanupCache()
             end
         end
         entityCache.lastCleanup = currentTime
-        collectgarbage("collect") -- Çöp toplama
+        collectgarbage("collect") -- Garbage collection
     end
 end
 
--- Oyuncu Durağan Durum Tespiti
+-- Player Static State Detection
 local function CheckPlayerStatic(playerCoords)
     local currentTime = GetGameTimer()
     if currentTime - staticCheckTimer > STATIC_CHECK_INTERVAL then
@@ -137,46 +137,46 @@ local function CheckPlayerStatic(playerCoords)
     return isPlayerStatic
 end
 
--- FPS ve Durağan Durum Bazlı Yoğunluk Optimizasyonu
+-- FPS and Static State Based Density Optimization
 local function AdjustDensityBasedOnConditions(playerCoords)
     if not Config.EnableDensityAdjustment then return end
     
-    -- Manuel yoğunluk ayarları kullanılıyor
+    -- Manual density settings are used
     local currentVehicleDensity = VehicleDensityMultiplier
     local currentPedDensity = PedDensityMultiplier
     
-    -- Oyuncu durağan mı kontrol et ve ona göre yoğunluğu ayarla
+    -- Check if player is stationary and adjust density accordingly
     if Config.EnableStaticCheck and CheckPlayerStatic(playerCoords) then
         currentVehicleDensity = currentVehicleDensity * staticPositionMultiplier
         currentPedDensity = currentPedDensity * staticPositionMultiplier
     end
     
-    -- Native fonksiyonlarla yoğunluğu ayarla
+    -- Adjust density using native functions
     SetParkedVehicleDensityMultiplierThisFrame(currentVehicleDensity)
     SetVehicleDensityMultiplierThisFrame(currentVehicleDensity)
     SetRandomVehicleDensityMultiplierThisFrame(currentVehicleDensity)
     SetPedDensityMultiplierThisFrame(currentPedDensity)
     SetScenarioPedDensityMultiplierThisFrame(currentPedDensity, currentPedDensity)
     
-    -- Ek yoğunluk kontrolleri
+    -- Additional density checks
     SetAmbientVehicleRangeMultiplierThisFrame(currentVehicleDensity)
     SetAmbientPedRangeMultiplierThisFrame(currentPedDensity)
     
-    -- Trafik yoğunluğunu kontrol et
+    -- Check traffic density
     SetVehicleModelIsSuppressed(GetHashKey("taco"), currentVehicleDensity == 0)
     SetVehicleModelIsSuppressed(GetHashKey("biff"), currentVehicleDensity == 0)
     SetVehicleModelIsSuppressed(GetHashKey("hauler"), currentVehicleDensity == 0)
     SetVehicleModelIsSuppressed(GetHashKey("phantom"), currentVehicleDensity == 0)
     SetVehicleModelIsSuppressed(GetHashKey("pounder"), currentVehicleDensity == 0)
     
-    -- NPC spawn kontrolü
+    -- NPC spawn check
     if currentPedDensity == 0 then
         SetPedPopulationBudget(0)
     else
         SetPedPopulationBudget(3)
     end
     
-    -- Araç spawn kontrolü
+    -- Vehicle spawn check
     if currentVehicleDensity == 0 then
         SetVehiclePopulationBudget(0)
     else
@@ -184,7 +184,7 @@ local function AdjustDensityBasedOnConditions(playerCoords)
     end
 end
 
--- Yavaşça Silme Fonksiyonu
+-- Slow Fade Out Function
 local function FadeOutEntity(entity)
     if not Config.EnableFadeEffect then
         if DoesEntityExist(entity) then
@@ -194,57 +194,57 @@ local function FadeOutEntity(entity)
     end
     
     if IsEntityValid(entity) then
-        -- Son bir kez daha oyuncu aracı kontrolü
-        if entity ~= nil and GetEntityType(entity) == 2 then -- Araç türü
+        -- Check again if player vehicle
+        if entity ~= nil and GetEntityType(entity) == 2 then -- Vehicle type
             local netId = NetworkGetEntityIsNetworked(entity) and NetworkGetNetworkIdFromEntity(entity) or 0
             if netId == 0 then return false end
             
             local plate = GetVehicleNumberPlateText(entity) or "unknown"
             
-            -- Eğer korunan bir araç ise silme işlemini iptal et
+            -- If protected vehicle, cancel deletion
             if Config.ProtectPlayerVehicles and (protectedVehicles[netId] or protectedVehicles[plate]) then
                 return false
             end
             
-            -- Araç sınıfı kontrolü
+            -- Vehicle class check
             local vehClass = GetVehicleClass(entity)
             if Config.ProtectedVehicleClasses[vehClass] then
                 return false
             end
             
-            -- Araçta oyuncu var mı kontrol et
+            -- Check if there is a player in the vehicle
             local maxPassengers = GetVehicleMaxNumberOfPassengers(entity)
             for seat = -1, maxPassengers do
                 local ped = GetPedInVehicleSeat(entity, seat)
                 if DoesEntityExist(ped) and IsPedAPlayer(ped) then
-                    -- Araçta oyuncu varsa korumaya al ve silme
+                    -- If player in vehicle, protect and cancel deletion
                     protectedVehicles[netId] = true
                     protectedVehicles[plate] = true
                     return false
                 end
             end
             
-            -- Son kontrol: Araç sahiplenilmiş mi?
+            -- Final check: Is the vehicle owned?
             if NetworkGetEntityOwner(entity) ~= nil and GetEntityPopulationType(entity) ~= 7 then
-                -- Bu bir oyuncu aracı, korumaya al ve silme
+                -- This is a player vehicle, protect and cancel deletion
                 protectedVehicles[netId] = true
                 protectedVehicles[plate] = true
                 return false
             end
         end
         
-        -- NPC kontrolü
+        -- NPC check
         if Config.ProtectPlayerPeds and IsPedAPlayer(entity) then
             return false
         end
         
-        -- NPC tipi kontrolü
+        -- NPC type check
         local pedType = GetPedType(entity)
         if Config.ProtectedPedTypes[pedType] then
             return false
         end
         
-        -- Orijinal silme işlemi
+        -- Original deletion process
         local startAlpha = GetEntityAlpha(entity)
         for alpha = startAlpha, 0, -FADE_STEP do
             if DoesEntityExist(entity) then
@@ -262,51 +262,51 @@ local function FadeOutEntity(entity)
     return false
 end
 
--- Araç Oyuncu Kontrolü (Gelişmiş)
+-- Vehicle Player Check (Enhanced)
 local function IsPlayerOwnedVehicle(vehicle)
     if not IsEntityValid(vehicle) then return false end
     
-    -- Netid ve plaka kontrolü
+    -- Netid and plate check
     local netId = NetworkGetEntityIsNetworked(vehicle) and NetworkGetNetworkIdFromEntity(vehicle) or 0
     if netId == 0 then return false end
     
     local plate = GetVehicleNumberPlateText(vehicle) or "unknown"
     
-    -- Eğer daha önce korunan araç olarak işaretlendiyse
+    -- If previously protected as a vehicle
     if protectedVehicles[netId] or protectedVehicles[plate] then
         return true
     end
     
-    -- Entity sahibi kontrolü
+    -- Entity owner check
     local owner = NetworkGetEntityOwner(vehicle)
     if owner ~= nil then
-        -- PopType 7 = Random/NPC aracı, diğerleri genellikle oyuncu/script araçları
+        -- PopType 7 = Random/NPC vehicle, others are usually player/script vehicles
         if GetEntityPopulationType(vehicle) ~= 7 then
-            -- Oyuncu aracı olarak işaretle
+            -- Mark as player vehicle
             protectedVehicles[netId] = true
             protectedVehicles[plate] = true
             return true
         end
     end
     
-    -- Araçta oyuncu var mı kontrol et
+    -- Check if there is a player in the vehicle
     local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
     for seat = -1, maxPassengers do
         local ped = GetPedInVehicleSeat(vehicle, seat)
         if DoesEntityExist(ped) and IsPedAPlayer(ped) then
-            -- Oyuncu aracı olarak işaretle
+            -- Mark as player vehicle
             protectedVehicles[netId] = true
             protectedVehicles[plate] = true
             return true
         end
     end
     
-    -- Model tipine göre kontrol (bazı araç modelleri her zaman korunabilir)
+    -- Check by model type (some vehicles are always protected)
     local vehModel = GetEntityModel(vehicle)
     local vehClass = GetVehicleClass(vehicle)
     
-    -- Özel araçlar, acil durum araçları veya nadir araçlar her zaman korunur
-    if vehClass == 18 or vehClass == 19 or vehClass == 15 then -- Acil durum, polis, vb.
+    -- Special vehicles, emergency vehicles, or rare vehicles are always protected
+    if vehClass == 18 or vehClass == 19 or vehClass == 15 then -- Emergency, police, etc.
         protectedVehicles[netId] = true
         protectedVehicles[plate] = true
         return true
@@ -315,29 +315,29 @@ local function IsPlayerOwnedVehicle(vehicle)
     return false
 end
 
--- Araç Spawn Kontrolü
+-- Vehicle Spawn Check
 local function ShouldSpawnVehicle()
     local chance = isPlayerStatic and 0.3 or 0.7
     return math.random() < chance
 end
 
--- NPC Araç Senkronizasyon Kontrolü
+-- NPC Vehicle Sync Check
 local function CheckVehicleSync(vehicle)
     if not IsEntityValid(vehicle) then return false end
     
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
     if netId == 0 then return false end
     
-    -- Eğer araç zaten senkronize edilmişse
+    -- If vehicle is already synced
     if syncedVehicles[netId] then
         return true
     end
     
-    -- Araç başka bir oyuncuya yakınsa
+    -- If vehicle is close to another player
     local vehicleCoords = GetEntityCoords(vehicle)
     local found = false
     
-    -- Tüm oyuncuları kontrol et
+    -- Check all players
     for i = 0, 32 do
         if NetworkIsPlayerActive(i) then
             local ped = GetPlayerPed(i)
@@ -345,7 +345,7 @@ local function CheckVehicleSync(vehicle)
                 local playerCoords = GetEntityCoords(ped)
                 local dist = #(vehicleCoords - playerCoords)
                 
-                -- Eğer araç başka bir oyuncuya yakınsa (50.0 birim)
+                -- If vehicle is close to another player (50.0 units)
                 if dist < 50.0 then
                     found = true
                     break
@@ -354,7 +354,7 @@ local function CheckVehicleSync(vehicle)
         end
     end
     
-    -- Eğer araç başka oyunculara yakınsa, senkronize et
+    -- If vehicle is close to other players, sync it
     if found then
         syncedVehicles[netId] = true
         NetworkRequestControlOfEntity(vehicle)
@@ -365,14 +365,14 @@ local function CheckVehicleSync(vehicle)
     return false
 end
 
--- Araç Yönetimi Fonksiyonu (Oyuncu Korumalı)
+-- Vehicle Management Function (Player Protected)
 local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
-    -- Araç geçerli değilse işlem yapma
+    -- If vehicle is invalid, do not process
     if not IsEntityValid(vehicle) then
         return vehicleCount
     end
     
-    -- Oyuncunun kendi aracı kontrolü
+    -- Player vehicle check
     if vehicle == playerVehicle then
         if NetworkGetEntityIsNetworked(vehicle) then
             local netId = NetworkGetNetworkIdFromEntity(vehicle)
@@ -383,20 +383,20 @@ local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
         return vehicleCount
     end
     
-    -- Senkronizasyon kontrolü
+    -- Sync check
     if CheckVehicleSync(vehicle) then
-        return vehicleCount -- Senkronize edilmiş aracı yönetme
+        return vehicleCount -- Synced vehicle
     end
     
-    -- Gelişmiş oyuncu aracı kontrolü
+    -- Enhanced player vehicle check
     if IsPlayerOwnedVehicle(vehicle) then
-        return vehicleCount  -- Oyuncu aracı ise işlem yapma
+        return vehicleCount  -- Player vehicle, do not process
     end
 
-    -- Buradan sonrası NPC araçları için işlemler
+    -- From here on, it's for NPC vehicles
     local vehHandle = NetworkGetEntityIsNetworked(vehicle) and NetworkGetNetworkIdFromEntity(vehicle) or 0
     if vehHandle == 0 then
-        return vehicleCount -- Geçersiz network ID, bu aracı atla
+        return vehicleCount -- Invalid network ID, skip this vehicle
     end
     
     local cachedVehicle = GetCachedEntity("vehicles", vehHandle)
@@ -406,22 +406,22 @@ local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
     if distance < vehicleSpawnDistance then
         vehicleCount = vehicleCount + 1
         
-        -- Oyuncu durağan durumdaysa veya araç limiti aşıldıysa
+        -- If player is stationary or vehicle limit exceeded
         if (isPlayerStatic and vehicleCount > maxVehiclesInArea * staticPositionMultiplier) or 
            vehicleCount > maxVehiclesInArea then
-            -- Araçtaki tüm NPC'leri kontrol et ve araçla birlikte sil
+            -- Check all NPCs in the vehicle and delete it with the vehicle
             local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
             for seat = -1, maxPassengers do -- -1 sürücü koltuğu
                 local pedInSeat = GetPedInVehicleSeat(vehicle, seat)
                 if DoesEntityExist(pedInSeat) and not IsPedAPlayer(pedInSeat) then
-                    -- Araçtaki NPC'yi araçla birlikte sil
+                    -- Delete NPC with the vehicle
                     FadeOutEntity(pedInSeat)
                 end
             end
             
-            -- Son bir kez daha kontrol
+            -- Check again
             if not IsPlayerOwnedVehicle(vehicle) then
-                -- Sonra aracı sil
+                -- Then delete the vehicle
                 FadeOutEntity(vehicle)
             end
             return vehicleCount
@@ -436,16 +436,16 @@ local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
             lastSeen = currentTime
         })
 
-        -- Araç ekranda görünmüyorsa ve oyuncu durağansa daha hızlı sil
+        -- If vehicle is not on screen and player is stationary, delete faster
         local invisibleTimeout = isPlayerStatic and (cleanupTime * 0.6) or cleanupTime
         
         if not IsEntityOnScreen(vehicle) then
             if not invisibleVehicleTimers[vehPlate] then
                 invisibleVehicleTimers[vehPlate] = currentTime
             elseif currentTime - invisibleVehicleTimers[vehPlate] > invisibleTimeout then
-                -- Son bir kez daha oyuncu aracı kontrolü
+                    -- Check again if player vehicle
                 if not IsPlayerOwnedVehicle(vehicle) then
-                    -- Araçla birlikte içindeki NPC'leri de sil
+                    -- Delete NPCs with the vehicle
                     local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
                     for seat = -1, maxPassengers do -- -1 sürücü koltuğu
                         local pedInSeat = GetPedInVehicleSeat(vehicle, seat)
@@ -466,39 +466,39 @@ local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
     return vehicleCount
 end
 
--- NPC Yönetimi Fonksiyonu (Güncellenmiş)
+-- NPC Management Function (Updated)
 local function ManagePed(ped, playerCoords, pedCount)
     if not IsEntityValid(ped) or IsPedAPlayer(ped) then
         return pedCount
     end
 
-    -- Eğer NPC bir araçtaysa, aracı yönetme işlemlerine bırak
+    -- If NPC is in a vehicle, leave it to vehicle management
     local pedVehicle = GetVehiclePedIsIn(ped, false)
     if pedVehicle ~= 0 then
-        -- Eğer oyuncu aracındaysa kesinlikle dokunma
+        -- If player vehicle, definitely do not touch
         if IsPlayerOwnedVehicle(pedVehicle) then
             return pedCount
         end
-        -- NPC bir araçta, bu NPC'yi atlayarak araç yönetim fonksiyonuna bırakıyoruz
+        -- NPC in a vehicle, leave it to vehicle management
         return pedCount
     end
 
     local pedHandle = NetworkGetEntityIsNetworked(ped) and NetworkGetNetworkIdFromEntity(ped) or 0
     if pedHandle == 0 then
-        return pedCount -- Geçersiz network ID, bu NPC'yi atla
+        return pedCount -- Invalid network ID, skip this NPC
     end
     
     local cachedPed = GetCachedEntity("peds", pedHandle)
     local pedCoords = cachedPed and cachedPed.coords or GetEntityCoords(ped)
     local distance = #(pedCoords - playerCoords)
     
-    -- Oyuncu durağansa NPC mesafesini daha da kısalt
+    -- If player is stationary, shorten NPC distance
     local activeSpawnDistance = isPlayerStatic and (pedSpawnDistance * 0.7) or pedSpawnDistance
     
     if distance < activeSpawnDistance then
         pedCount = pedCount + 1
         
-        -- Oyuncu durağan durumdaysa veya NPC limiti aşıldıysa
+        -- If player is stationary or NPC limit exceeded
         if (isPlayerStatic and pedCount > maxPedsInArea * staticPositionMultiplier) or 
            pedCount > maxPedsInArea then
             FadeOutEntity(ped)
@@ -512,7 +512,7 @@ local function ManagePed(ped, playerCoords, pedCount)
             lastSeen = currentTime
         })
 
-        -- NPC ekranda görünmüyorsa ve oyuncu durağansa daha hızlı sil
+        -- If NPC is not on screen and player is stationary, delete faster
         local invisibleTimeout = isPlayerStatic and (cleanupTime * 0.6) or cleanupTime
         
         if not IsEntityOnScreen(ped) then
@@ -530,15 +530,15 @@ local function ManagePed(ped, playerCoords, pedCount)
     return pedCount
 end
 
--- Oyuncu Araçlarını Tarama ve Koruma Fonksiyonu
+-- Player Vehicles Scan and Protection Function
 local function ScanAndProtectPlayerVehicles()
     local playerCount = GetNumberOfPlayers()
     
-    -- Tüm oyuncuları tara
+    -- Scan all players
     for i = 0, playerCount - 1 do
         local ped = GetPlayerPed(i)
         if DoesEntityExist(ped) then
-            -- Oyuncunun mevcut aracını kontrol et
+            -- Check if player has a current vehicle
             local vehicle = GetVehiclePedIsIn(ped, false)
             if DoesEntityExist(vehicle) and NetworkGetEntityIsNetworked(vehicle) then
                 local netId = NetworkGetNetworkIdFromEntity(vehicle)
@@ -549,11 +549,11 @@ local function ScanAndProtectPlayerVehicles()
         end
     end
     
-    -- Tüm araçları tara ve oyuncu sahibi olanları işaretle
+    -- Scan all vehicles and mark player-owned vehicles
     local vehicles = GetGamePool('CVehicle')
     for _, vehicle in ipairs(vehicles) do
         if DoesEntityExist(vehicle) then
-            -- Araçta oyuncu var mı kontrolü
+            -- Check if there is a player in the vehicle
             local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
             for seat = -1, maxPassengers do
                 local ped = GetPedInVehicleSeat(vehicle, seat)
@@ -568,7 +568,7 @@ local function ScanAndProtectPlayerVehicles()
                 end
             end
             
-            -- Entity sahibi oyuncu mu?
+            -- Is the entity owner a player?
             if NetworkGetEntityOwner(vehicle) ~= nil then
                 if GetEntityPopulationType(vehicle) ~= 7 then
                     if NetworkGetEntityIsNetworked(vehicle) then
@@ -583,7 +583,7 @@ local function ScanAndProtectPlayerVehicles()
     end
 end
 
--- Ana Araç Yönetim Döngüsü
+-- Main Vehicle Management Loop
 CreateThread(function()
     while true do
         local playerPed = PlayerPedId()
@@ -593,7 +593,7 @@ CreateThread(function()
             AdjustDensityBasedOnConditions(playerCoords)
             CleanupCache()
             
-            -- Düzenli olarak oyuncu araçlarını tara
+            -- Regularly scan player vehicles
             playerVehicleChecksCounter = playerVehicleChecksCounter + 1
             if playerVehicleChecksCounter >= 10 then
                 ScanAndProtectPlayerVehicles()
@@ -602,7 +602,7 @@ CreateThread(function()
             
             local playerVehicle = GetVehiclePedIsIn(playerPed, false)
             if DoesEntityExist(playerVehicle) and NetworkGetEntityIsNetworked(playerVehicle) then
-                -- Oyuncunun aracını her zaman korumaya al
+                -- Always protect player vehicle
                 local netId = NetworkGetNetworkIdFromEntity(playerVehicle)
                 local plate = GetVehicleNumberPlateText(playerVehicle) or "unknown"
                 protectedVehicles[netId] = true
@@ -621,7 +621,7 @@ CreateThread(function()
     end
 end)
 
--- Ana NPC Yönetim Döngüsü
+-- Main NPC Management Loop
 CreateThread(function()
     while true do
         local playerPed = PlayerPedId()
@@ -643,13 +643,13 @@ CreateThread(function()
     end
 end)
 
--- Yeni Ekstra Trafik Kontrol Mekanizması
+-- New Extra Traffic Control Mechanism
 CreateThread(function()
     while true do
         local playerPed = PlayerPedId()
         
         if DoesEntityExist(playerPed) then
-            -- Oyuncu durağan ise çevreden araçları agresif bir şekilde temizle
+            -- If player is stationary, clean up surrounding vehicles aggressively
             if isPlayerStatic then
                 local playerCoords = GetEntityCoords(playerPed)
                 local vehicles = GetGamePool('CVehicle')
@@ -660,9 +660,9 @@ CreateThread(function()
                         local vehCoords = GetEntityCoords(vehicle)
                         local dist = #(vehCoords - playerCoords)
                         
-                        -- Oyuncu durağan ve araç belli bir mesafede ise rastgele silme olasılığı ekle
+                        -- If player is stationary and vehicle is a certain distance away, add a chance to delete randomly
                         if dist < 70.0 and dist > vehicleSpawnDistance and math.random() < 0.4 then
-                            -- Son bir kez daha oyuncu aracı kontrolü yap
+                            -- Check again if player vehicle
                             if not IsPlayerOwnedVehicle(vehicle) then
                                 local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
                                 for seat = -1, maxPassengers do
@@ -679,12 +679,12 @@ CreateThread(function()
             end
         end
         
-        -- Durağan durumdayken daha sık çalıştır
+        -- If player is stationary, run more frequently
         Wait(isPlayerStatic and 2000 or 5000)
     end
 end)
 
--- Polis ve Dispatch Kontrolü
+-- Police and Dispatch Control
 if DisableCops or DisableDispatch then
     CreateThread(function()
         while true do
@@ -705,10 +705,10 @@ if DisableCops or DisableDispatch then
     end)
 end
 
--- GTA'nın Trafik Spawn Sistemini Ayarla
+-- Adjust GTA's Traffic Spawn System
 CreateThread(function()
     while true do
-        -- Trafik yoğunluğunu doğrudan kontrol et
+        -- Directly control traffic density
         SetRandomBoats(false)
         SetGarbageTrucks(false)
         SetRandomTrains(false)
@@ -718,9 +718,9 @@ CreateThread(function()
         SetVehicleModelIsSuppressed(GetHashKey("phantom"), true)
         SetVehicleModelIsSuppressed(GetHashKey("pounder"), true)
         
-        -- Oyuncu durağan durumdaysa ek kısıtlamalar
+        -- If player is stationary, additional restrictions
         if isPlayerStatic then
-            -- Durağan durumdayken tüm trafik yoğunluğunu daha da azalt
+            -- When player is stationary, reduce traffic density even more
             SetParkedVehicleDensityMultiplierThisFrame(VehicleDensityMultiplier * 0.5)
             SetVehicleDensityMultiplierThisFrame(VehicleDensityMultiplier * 0.5)
             SetRandomVehicleDensityMultiplierThisFrame(VehicleDensityMultiplier * 0.5)
@@ -730,8 +730,8 @@ CreateThread(function()
     end
 end)
 
--- Başlangıçta oyuncu araçlarını hemen korumaya al
+-- Immediately protect player vehicles at the start
 CreateThread(function()
-    Wait(1000) -- Oyun tam yüklensin diye kısa bir bekleme
+    Wait(1000) -- Wait for the game to load
     ScanAndProtectPlayerVehicles()
 end)
