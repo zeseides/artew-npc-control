@@ -10,6 +10,11 @@ Bu script, FiveM için optimize edilmiş bir **araç ve yaya yönetim** sistemid
 - **Yavaş silme efekti** – Araç ve yayalar aniden kaybolmaz, yerine yavaşça silinir.
 - **Polis ve acil servis kapatma** – İsteğe bağlı olarak polis ve ambulans spawn olmasını engeller.
 - **FPS Bazlı Yoğunluk Optimizasyonu** - Eğerki fpste düşüş olursa otomatik olarak fps değerine göre yoğunluklar artar veya azalır.
+- **Daha akıllı spawn mesafeleri** → NPC ve araçlar, oyuncuların görüş açısına uygun mesafelerde oluşturulur ve gereksiz işlem yükü engellenir.
+- **Trafik Spawn Kontrolü** → İstediğiniz araçların spawn kontrolünü yapabilirsiniz.
+- **Oyuncu Durağan Durum Özellikleri** → Oyuncu 5 birim altında hareket ederse durağan kabul ediliyor Durağan durumdayken yoğunluk %50 azaltılıyor Her 2 saniyede bir durağan durum kontrolü Durağan durumdayken daha agresif temizleme
+- **Akıllı Spawn Sistemi** → Durağan durumdayken %30 spawn şansı Hareket halindeyken %70 spawn şansı Mesafe bazlı spawn kontrolü FPS bazlı spawn optimizasyonu.
+
 
 ## 🔧 Kurulum
 
@@ -22,17 +27,25 @@ Bu script, FiveM için optimize edilmiş bir **araç ve yaya yönetim** sistemid
 
 ## ⚙️ Yapılandırma
 
-Scripti ihtiyaçlarınıza göre özelleştirmek için `client.lua` dosyasını düzenleyebilirsiniz.
+Scripti ihtiyaçlarınıza göre özelleştirmek için `config.lua` dosyasını düzenleyebilirsiniz.
 
 ### Önemli Değişkenler  
-- `VehicleDensityMultiplier`: Araç yoğunluğunu belirler.  
-- `PedDensityMultiplier`: Yaya yoğunluğunu belirler.
+- `VehicleDensityMultiplier`: Araç yoğunluğunu belirler. (0.0 - 1.0 arası)  
+- `PedDensityMultiplier`: Yaya yoğunluğunu belirler. (0.0 - 1.0 arası)
+- `PlayerStaticThreshold`: Oyuncu bu mesafeden az hareket ettiğinde durağan kabul edilir
+- `StaticPositionMultiplier`: Durağan konumdayken density'i bu kadar azalt
 - `DisableCops`ve`DisableDispatch`: Polis ve acil durum birimlerini devre dışı bırakmasını sağlar.
 - `vehicleSpawnDistance`ve `pedSpawnDistance`: Araç ve yaya spawn mesafesi   
 - `maxVehiclesInArea`: Maksimum araç sayısını sınırlar.  
 - `maxPedsInArea`: Maksimum yaya sayısını sınırlar.  
 - `cleanupTime`: Görünmeyen varlıkları temizleme süresi (ms cinsinden).
-- `VehicleDensityMultiplier`: fps başına ne kadar yoğunluk olacağını ayarlar.
+- `EnableFadeEffect`: Fade efektini aktif/pasif yap
+- `ProtectPlayerVehicles`: Oyuncu araçlarını koru
+- `ProtectPlayerPeds`: Oyuncu NPC'lerini koru
+- `EnableStaticCheck`: Durağan durum kontrolünü aktif/pasif yap
+- `EnableDensityAdjustment`: Yoğunluk ayarlamalarını aktif/pasif yap
+- `DebugMode`: Debug modunu aktif/pasif yap
+- `DebugLogLevel`: Debug log seviyesi (1: Sadece hatalar, 2: Tüm loglar)
 
     
 ## 🔧 Resmon Değerleri
@@ -53,6 +66,10 @@ This script is an optimized **vehicle and pedestrian management** system for Fiv
 - **Slow deletion effect** – Vehicles and pedestrians do not disappear suddenly; instead, they fade out gradually.
 - **Police and emergency service disable** – Optionally prevents police and ambulances from spawning.
 - **FPS-Based Density Optimization** – If FPS drops, densities automatically increase or decrease based on FPS values.
+- **Smarter spawn distances** → NPCs and vehicles are spawned at distances suitable for the players' line of sight, preventing unnecessary processing load.
+- **Traffic Spawn Control** → You can control the spawn of the vehicles you want.
+- **Player Steady State Features** → Player is considered to be stationary if they move under 5 units Intensity is reduced by 50% while in steady state Steady state check every 2 seconds More aggressive clearing while in steady state
+- **Smart Spawn System** → 30% chance to spawn when stationary 70% chance to spawn when moving Distance based spawn control FPS based spawn optimisation.
 
 ## 🔧 Installation
 
@@ -65,17 +82,25 @@ This script is an optimized **vehicle and pedestrian management** system for Fiv
 
 ## ⚙️ Configuration
 
-You can customize the script according to your needs by editing the `client.lua` file.
+You can customize the script according to your needs by editing the `config.lua` file.
 
 ### Important Variables  
-- `VehicleDensityMultiplier`: Determines vehicle density.  
-- `PedDensityMultiplier`: Determines pedestrian density.  
-- `DisableCops` and `DisableDispatch`: Disables police and emergency units.  
-- `vehicleSpawnDistance` and `pedSpawnDistance`: Defines the spawn distance for vehicles and pedestrians.  
+- `VehicleDensityMultiplier`: Determines the vehicle density (between 0.0 and 1.0)  
+- `PedDensityMultiplier`: Determines the pedestrian density (between 0.0 and 1.0).
+- `PlayerStaticThreshold`: The player is considered static when moving less than this distance
+- `StaticPositionMultiplier`: Reduce density by this much in static position
+- `DisableCops` and `DisableDispatch`: Allows to disable police and emergency units.
+- `vehicleSpawnDistance` and `pedSpawnDistance`: Vehicle and pedestrian spawn distance   
 - `maxVehiclesInArea`: Limits the maximum number of vehicles.  
 - `maxPedsInArea`: Limits the maximum number of pedestrians.  
-- `cleanupTime`: Time interval for removing invisible entities (in ms).  
-- `VehicleDensityMultiplier`: Adjusts density per FPS.
+- `cleanupTime`: Time (in ms) to clear invisible entities.
+- `EnableFadeEffect`: Enable/disable the fade effect
+- `ProtectPlayerVehicles`: Protect player vehicles
+- `ProtectPlayerPeds`: Protect player NPCs
+- `EnableStaticCheck`: Enable/disable static check
+- `EnableDensityAdjustment`: Enable/disable density adjustments
+- `DebugMode`: Enable/disable debug mode
+- `DebugLogLevel`: Debug log level (1: Errors only, 2: All logs)
 
 ## 🔧 Resmon Values
 ![Resmon](https://github.com/user-attachments/assets/7d49fe0d-7dbc-4501-9454-bb88d0a757da)
