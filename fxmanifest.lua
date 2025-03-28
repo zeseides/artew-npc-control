@@ -6,6 +6,7 @@ description 'Artew Enhanced NPC Control'
 version '1.1.2'
 
 shared_script 'config.lua'
+server_script 'version_checker.lua'
 client_script 'client.lua'
 
 lua54 'yes'
