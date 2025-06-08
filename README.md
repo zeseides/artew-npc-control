@@ -1,108 +1,52 @@
-# 🏃 Artew NPC Control[TR]
+# 🏃 Artew NPC 控制系統
 
-Bu script, FiveM için optimize edilmiş bir **araç ve yaya yönetim** sistemidir. **FPS dostu** yapısıyla sunucularda gereksiz araç ve yayaları temizleyerek daha akıcı bir oyun deneyimi sunar.
+這個腳本是為 FiveM 優化的**載具和行人管理**系統。透過其**FPS 友善**的架構，清除伺服器中不必要的載具和行人，提供更流暢的遊戲體驗。
 
-## 📌 Özellikler
+## 📌 功能特色
 
-- **FPS bazlı optimizasyon** – FPS değerine göre araç ve yaya yoğunluklarını otomatik olarak ayarlar.
-- **Görünmeyen araç/yaya temizleme** – Uzun süre ekranda görünmeyen varlıkları belirli bir süre sonunda temizler.
-- **Araç ve yaya sınırı** – Belirlenen sınırdan fazla araç/yaya oluşturulmasını önler.
-- **Yavaş silme efekti** – Araç ve yayalar aniden kaybolmaz, yerine yavaşça silinir.
-- **Polis ve acil servis kapatma** – İsteğe bağlı olarak polis ve ambulans spawn olmasını engeller.
-- **FPS Bazlı Yoğunluk Optimizasyonu** - Eğerki fpste düşüş olursa otomatik olarak fps değerine göre yoğunluklar artar veya azalır.
-- **Daha akıllı spawn mesafeleri** → NPC ve araçlar, oyuncuların görüş açısına uygun mesafelerde oluşturulur ve gereksiz işlem yükü engellenir.
-- **Trafik Spawn Kontrolü** → İstediğiniz araçların spawn kontrolünü yapabilirsiniz.
-- **Oyuncu Durağan Durum Özellikleri** → Oyuncu 5 birim altında hareket ederse durağan kabul ediliyor Durağan durumdayken yoğunluk %50 azaltılıyor Her 2 saniyede bir durağan durum kontrolü Durağan durumdayken daha agresif temizleme
-- **Akıllı Spawn Sistemi** → Durağan durumdayken %30 spawn şansı Hareket halindeyken %70 spawn şansı Mesafe bazlı spawn kontrolü FPS bazlı spawn optimizasyonu.
+- **基於 FPS 的優化** – 根據 FPS 數值自動調整載具和行人密度。
+- **隱形載具/行人清理** – 移除長時間未在螢幕上顯示的實體。
+- **載具和行人限制** – 防止創建超過指定限制的載具/行人。
+- **緩慢刪除效果** – 載具和行人不會突然消失，而是緩慢淡出。
+- **警察和緊急服務停用** – 可選擇性地阻止警察和救護車生成。
+- **FPS 基礎密度優化** - 如果 FPS 下降，會根據 FPS 值自動增加或減少密度。
+- **更智能的生成距離** → NPC 和載具在適合玩家視角的距離生成，防止不必要的處理負載。
+- **交通生成控制** → 您可以控制想要的載具生成。
+- **玩家靜止狀態功能** → 玩家移動少於 5 單位時被視為靜止，靜止狀態時密度降低 50%，每 2 秒檢查一次靜止狀態，靜止時更積極的清理。
+- **智能生成系統** → 靜止時 30% 生成機率，移動時 70% 生成機率，基於距離的生成控制，基於 FPS 的生成優化。
 
+## 🔧 安裝說明
 
-## 🔧 Kurulum
-
-1. Dosyaları indir ve `artew-npc-control` adlı bir klasöre yerleştir.
-2. `server.cfg` dosyanı aç ve şu satırı ekle:
+1. 下載檔案並放置在名為 `artew-npc-control` 的資料夾中。
+2. 開啟您的 `server.cfg` 檔案並新增以下行：
    ```cfg
    ensure artew-npc-control
    ```
-3. Sunucunu yeniden başlat.
+3. 重新啟動您的伺服器。
 
-## ⚙️ Yapılandırma
+## ⚙️ 配置設定
 
-Scripti ihtiyaçlarınıza göre özelleştirmek için `config.lua` dosyasını düzenleyebilirsiniz.
+您可以透過編輯 `config.lua` 檔案來根據需求自訂腳本。
 
-### Önemli Değişkenler  
-- `VehicleDensityMultiplier`: Araç yoğunluğunu belirler. (0.0 - 1.0 arası)  
-- `PedDensityMultiplier`: Yaya yoğunluğunu belirler. (0.0 - 1.0 arası)
-- `PlayerStaticThreshold`: Oyuncu bu mesafeden az hareket ettiğinde durağan kabul edilir
-- `StaticPositionMultiplier`: Durağan konumdayken density'i bu kadar azalt
-- `DisableCops`ve`DisableDispatch`: Polis ve acil durum birimlerini devre dışı bırakmasını sağlar.
-- `vehicleSpawnDistance`ve `pedSpawnDistance`: Araç ve yaya spawn mesafesi   
-- `maxVehiclesInArea`: Maksimum araç sayısını sınırlar.  
-- `maxPedsInArea`: Maksimum yaya sayısını sınırlar.  
-- `cleanupTime`: Görünmeyen varlıkları temizleme süresi (ms cinsinden).
-- `EnableFadeEffect`: Fade efektini aktif/pasif yap
-- `ProtectPlayerVehicles`: Oyuncu araçlarını koru
-- `ProtectPlayerPeds`: Oyuncu NPC'lerini koru
-- `EnableStaticCheck`: Durağan durum kontrolünü aktif/pasif yap
-- `EnableDensityAdjustment`: Yoğunluk ayarlamalarını aktif/pasif yap
-- `DebugMode`: Debug modunu aktif/pasif yap
-- `DebugLogLevel`: Debug log seviyesi (1: Sadece hatalar, 2: Tüm loglar)
+### 重要變數  
+- `VehicleDensityMultiplier`：決定載具密度。（0.0 - 1.0 之間）  
+- `PedDensityMultiplier`：決定行人密度。（0.0 - 1.0 之間）
+- `PlayerStaticThreshold`：玩家移動少於此距離時被視為靜止
+- `StaticPositionMultiplier`：靜止位置時降低的密度倍數
+- `DisableCops` 和 `DisableDispatch`：允許停用警察和緊急單位。
+- `vehicleSpawnDistance` 和 `pedSpawnDistance`：載具和行人生成距離   
+- `maxVehiclesInArea`：限制最大載具數量。  
+- `maxPedsInArea`：限制最大行人數量。  
+- `cleanupTime`：清除隱形實體的時間（以毫秒為單位）。
+- `EnableFadeEffect`：啟用/停用淡出效果
+- `ProtectPlayerVehicles`：保護玩家載具
+- `ProtectPlayerPeds`：保護玩家 NPC
+- `EnableStaticCheck`：啟用/停用靜止檢查
+- `EnableDensityAdjustment`：啟用/停用密度調整
+- `DebugMode`：啟用/停用除錯模式
+- `DebugLogLevel`：除錯日誌等級（1：僅錯誤，2：所有日誌）
 
-    
-## 🔧 Resmon Değerleri
+## 🔧 Resmon 數值
 ![Resmon](https://github.com/user-attachments/assets/7d49fe0d-7dbc-4501-9454-bb88d0a757da)
 
-Resmon değeri 0.0-0.2 maximum bu kadar olacaktır.
-
-
-# 🏃 Artew NPC Control [EN]
-
-This script is an optimized **vehicle and pedestrian management** system for FiveM. With its **FPS-friendly** structure, it removes unnecessary vehicles and pedestrians from servers, providing a smoother gaming experience.
-
-## 📌 Features
-
-- **FPS-based optimization** – Automatically adjusts vehicle and pedestrian densities based on FPS values.
-- **Invisible vehicle/pedestrian cleanup** – Removes entities that have not been visible on the screen for a certain period.
-- **Vehicle and pedestrian limits** – Prevents the creation of more vehicles/pedestrians than the specified limit.
-- **Slow deletion effect** – Vehicles and pedestrians do not disappear suddenly; instead, they fade out gradually.
-- **Police and emergency service disable** – Optionally prevents police and ambulances from spawning.
-- **FPS-Based Density Optimization** – If FPS drops, densities automatically increase or decrease based on FPS values.
-- **Smarter spawn distances** → NPCs and vehicles are spawned at distances suitable for the players' line of sight, preventing unnecessary processing load.
-- **Traffic Spawn Control** → You can control the spawn of the vehicles you want.
-- **Player Steady State Features** → Player is considered to be stationary if they move under 5 units Intensity is reduced by 50% while in steady state Steady state check every 2 seconds More aggressive clearing while in steady state
-- **Smart Spawn System** → 30% chance to spawn when stationary 70% chance to spawn when moving Distance based spawn control FPS based spawn optimisation.
-
-## 🔧 Installation
-
-1. Download the files and place them in a folder named `artew-npc-control`.
-2. Open your `server.cfg` file and add the following line:
-   ```cfg
-   ensure artew-npc-control
-   ```
-3. Restart your server.
-
-## ⚙️ Configuration
-
-You can customize the script according to your needs by editing the `config.lua` file.
-
-### Important Variables  
-- `VehicleDensityMultiplier`: Determines the vehicle density (between 0.0 and 1.0)  
-- `PedDensityMultiplier`: Determines the pedestrian density (between 0.0 and 1.0).
-- `PlayerStaticThreshold`: The player is considered static when moving less than this distance
-- `StaticPositionMultiplier`: Reduce density by this much in static position
-- `DisableCops` and `DisableDispatch`: Allows to disable police and emergency units.
-- `vehicleSpawnDistance` and `pedSpawnDistance`: Vehicle and pedestrian spawn distance   
-- `maxVehiclesInArea`: Limits the maximum number of vehicles.  
-- `maxPedsInArea`: Limits the maximum number of pedestrians.  
-- `cleanupTime`: Time (in ms) to clear invisible entities.
-- `EnableFadeEffect`: Enable/disable the fade effect
-- `ProtectPlayerVehicles`: Protect player vehicles
-- `ProtectPlayerPeds`: Protect player NPCs
-- `EnableStaticCheck`: Enable/disable static check
-- `EnableDensityAdjustment`: Enable/disable density adjustments
-- `DebugMode`: Enable/disable debug mode
-- `DebugLogLevel`: Debug log level (1: Errors only, 2: All logs)
-
-## 🔧 Resmon Values
-![Resmon](https://github.com/user-attachments/assets/7d49fe0d-7dbc-4501-9454-bb88d0a757da)
-
-The Resmon value will be between 0.0-0.2 at maximum.
+Resmon 數值最高將在 0.0-0.2 之間。
