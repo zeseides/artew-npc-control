@@ -1,21 +1,20 @@
+-- 玩家載具保護增強版
 
--- Players Vehicles Protection Enhanced Version  
-
--- General Settings
+-- 一般設定
 local VehicleDensityMultiplier = Config.VehicleDensityMultiplier
 local PedDensityMultiplier = Config.PedDensityMultiplier
 local DisableCops = Config.DisableCops
 local DisableDispatch = Config.DisableDispatch
 local lastVehicleDensity, lastPedDensity = -1, -1
-local syncedVehicles = {} -- For tracking synced vehicles
+local syncedVehicles = {} -- 用於追蹤已同步的載具
 
--- Spawn Distances and Limits
+-- 生成距離和限制
 local vehicleSpawnDistance = Config.VehicleSpawnDistance
 local pedSpawnDistance = Config.PedSpawnDistance
 local maxVehiclesInArea = Config.MaxVehiclesInArea
 local maxPedsInArea = Config.MaxPedsInArea
 
--- Extra Settings for Static Player
+-- 靜止玩家的額外設定
 local playerStaticThreshold = Config.PlayerStaticThreshold
 local staticPositionMultiplier = Config.StaticPositionMultiplier
 local lastPlayerPosition = vector3(0, 0, 0)
@@ -23,7 +22,7 @@ local isPlayerStatic = false
 local staticCheckTimer = 0
 local STATIC_CHECK_INTERVAL = Config.StaticCheckInterval
 
--- Cache System
+-- 快取系統
 local entityCache = {
     vehicles = {},
     peds = {},
@@ -31,42 +30,42 @@ local entityCache = {
     maxSize = Config.MaxCacheSize
 }
 
--- Cleanup Timers
+-- 清理計時器
 local cleanupTime = Config.CleanupTime
 local cacheCleanupInterval = Config.CacheCleanupInterval
 local invisibleVehicleTimers, invisiblePedTimers = {}, {}
 
--- Constants for Performance Optimization
+-- 效能優化常數
 local THREAD_SLEEP_VEHICLE = Config.ThreadSleepVehicle
 local THREAD_SLEEP_PED = Config.ThreadSleepPed
 local FADE_STEP = Config.FadeStep
 local FADE_WAIT = Config.FadeWait
 
--- Player Vehicles Security System
-local protectedVehicles = {} -- List of protected vehicles
+-- 玩家載具安全系統
+local protectedVehicles = {} -- 受保護載具列表
 local playerVehicleChecksCounter = 0
 
--- Debug Variables
+-- 除錯變數
 local debugMode = Config.DebugMode
 local debugLogLevel = Config.DebugLogLevel
 
--- Debug Log Function
+-- 除錯日誌函數
 local function DebugLog(message, level)
     if not debugMode then return end
     if level > debugLogLevel then return end
     print(string.format("^2[Artew-NPC-Control] ^7%s", message))
 end
 
--- Entity Control Function (Enhanced)
+-- 實體控制函數（增強版）
 local function IsEntityValid(entity)
     if entity == nil or entity == 0 or not DoesEntityExist(entity) then 
         return false 
     end
-    -- Check if networked
+    -- 檢查是否為網路實體
     return NetworkGetEntityIsNetworked(entity)
 end
 
--- Cache Management
+-- 快取管理
 local function UpdateEntityCache(entityType, entityId, data)
     if not Config.EnableCache then return end
     
@@ -74,14 +73,14 @@ local function UpdateEntityCache(entityType, entityId, data)
         entityCache[entityType] = {}
     end
     
-    -- Cache size check
+    -- 快取大小檢查
     local cacheSize = 0
     for _ in pairs(entityCache[entityType]) do
         cacheSize = cacheSize + 1
     end
     
     if cacheSize >= entityCache.maxSize then
-        -- Delete oldest entry
+        -- 刪除最舊的條目
         local oldestTime = GetGameTimer()
         local oldestId = nil
         for id, entry in pairs(entityCache[entityType]) do
@@ -121,11 +120,11 @@ local function CleanupCache()
             end
         end
         entityCache.lastCleanup = currentTime
-        collectgarbage("collect") -- Garbage collection
+        collectgarbage("collect") -- 垃圾回收
     end
 end
 
--- Player Static State Detection
+-- 玩家靜止狀態檢測
 local function CheckPlayerStatic(playerCoords)
     local currentTime = GetGameTimer()
     if currentTime - staticCheckTimer > STATIC_CHECK_INTERVAL then
@@ -137,46 +136,46 @@ local function CheckPlayerStatic(playerCoords)
     return isPlayerStatic
 end
 
--- FPS and Static State Based Density Optimization
+-- 基於 FPS 和靜止狀態的密度優化
 local function AdjustDensityBasedOnConditions(playerCoords)
     if not Config.EnableDensityAdjustment then return end
     
-    -- Manual density settings are used
+    -- 使用手動密度設定
     local currentVehicleDensity = VehicleDensityMultiplier
     local currentPedDensity = PedDensityMultiplier
     
-    -- Check if player is stationary and adjust density accordingly
+    -- 檢查玩家是否靜止並相應調整密度
     if Config.EnableStaticCheck and CheckPlayerStatic(playerCoords) then
         currentVehicleDensity = currentVehicleDensity * staticPositionMultiplier
         currentPedDensity = currentPedDensity * staticPositionMultiplier
     end
     
-    -- Adjust density using native functions
+    -- 使用原生函數調整密度
     SetParkedVehicleDensityMultiplierThisFrame(currentVehicleDensity)
     SetVehicleDensityMultiplierThisFrame(currentVehicleDensity)
     SetRandomVehicleDensityMultiplierThisFrame(currentVehicleDensity)
     SetPedDensityMultiplierThisFrame(currentPedDensity)
     SetScenarioPedDensityMultiplierThisFrame(currentPedDensity, currentPedDensity)
     
-    -- Additional density checks
+    -- 額外的密度檢查
     SetAmbientVehicleRangeMultiplierThisFrame(currentVehicleDensity)
     SetAmbientPedRangeMultiplierThisFrame(currentPedDensity)
     
-    -- Check traffic density
+    -- 檢查交通密度
     SetVehicleModelIsSuppressed(GetHashKey("taco"), currentVehicleDensity == 0)
     SetVehicleModelIsSuppressed(GetHashKey("biff"), currentVehicleDensity == 0)
     SetVehicleModelIsSuppressed(GetHashKey("hauler"), currentVehicleDensity == 0)
     SetVehicleModelIsSuppressed(GetHashKey("phantom"), currentVehicleDensity == 0)
     SetVehicleModelIsSuppressed(GetHashKey("pounder"), currentVehicleDensity == 0)
     
-    -- NPC spawn check
+    -- NPC 生成檢查
     if currentPedDensity == 0 then
         SetPedPopulationBudget(0)
     else
         SetPedPopulationBudget(3)
     end
     
-    -- Vehicle spawn check
+    -- 載具生成檢查
     if currentVehicleDensity == 0 then
         SetVehiclePopulationBudget(0)
     else
@@ -184,7 +183,7 @@ local function AdjustDensityBasedOnConditions(playerCoords)
     end
 end
 
--- Slow Fade Out Function
+-- 慢速淡出函數
 local function FadeOutEntity(entity)
     if not Config.EnableFadeEffect then
         if DoesEntityExist(entity) then
@@ -194,57 +193,57 @@ local function FadeOutEntity(entity)
     end
     
     if IsEntityValid(entity) then
-        -- Check again if player vehicle
-        if entity ~= nil and GetEntityType(entity) == 2 then -- Vehicle type
+        -- 再次檢查是否為玩家載具
+        if entity ~= nil and GetEntityType(entity) == 2 then -- 載具類型
             local netId = NetworkGetEntityIsNetworked(entity) and NetworkGetNetworkIdFromEntity(entity) or 0
             if netId == 0 then return false end
             
             local plate = GetVehicleNumberPlateText(entity) or "unknown"
             
-            -- If protected vehicle, cancel deletion
+            -- 如果是受保護的載具，取消刪除
             if Config.ProtectPlayerVehicles and (protectedVehicles[netId] or protectedVehicles[plate]) then
                 return false
             end
             
-            -- Vehicle class check
+            -- 載具類別檢查
             local vehClass = GetVehicleClass(entity)
             if Config.ProtectedVehicleClasses[vehClass] then
                 return false
             end
             
-            -- Check if there is a player in the vehicle
+            -- 檢查載具內是否有玩家
             local maxPassengers = GetVehicleMaxNumberOfPassengers(entity)
             for seat = -1, maxPassengers do
                 local ped = GetPedInVehicleSeat(entity, seat)
                 if DoesEntityExist(ped) and IsPedAPlayer(ped) then
-                    -- If player in vehicle, protect and cancel deletion
+                    -- 如果載具內有玩家，保護並取消刪除
                     protectedVehicles[netId] = true
                     protectedVehicles[plate] = true
                     return false
                 end
             end
             
-            -- Final check: Is the vehicle owned?
+            -- 最終檢查：載具是否被擁有？
             if NetworkGetEntityOwner(entity) ~= nil and GetEntityPopulationType(entity) ~= 7 then
-                -- This is a player vehicle, protect and cancel deletion
+                -- 這是玩家載具，保護並取消刪除
                 protectedVehicles[netId] = true
                 protectedVehicles[plate] = true
                 return false
             end
         end
         
-        -- NPC check
+        -- NPC 檢查
         if Config.ProtectPlayerPeds and IsPedAPlayer(entity) then
             return false
         end
         
-        -- NPC type check
+        -- NPC 類型檢查
         local pedType = GetPedType(entity)
         if Config.ProtectedPedTypes[pedType] then
             return false
         end
         
-        -- Original deletion process
+        -- 原始刪除程序
         local startAlpha = GetEntityAlpha(entity)
         for alpha = startAlpha, 0, -FADE_STEP do
             if DoesEntityExist(entity) then
@@ -262,51 +261,51 @@ local function FadeOutEntity(entity)
     return false
 end
 
--- Vehicle Player Check (Enhanced)
+-- 載具玩家檢查（增強版）
 local function IsPlayerOwnedVehicle(vehicle)
     if not IsEntityValid(vehicle) then return false end
     
-    -- Netid and plate check
+    -- 網路 ID 和車牌檢查
     local netId = NetworkGetEntityIsNetworked(vehicle) and NetworkGetNetworkIdFromEntity(vehicle) or 0
     if netId == 0 then return false end
     
     local plate = GetVehicleNumberPlateText(vehicle) or "unknown"
     
-    -- If previously protected as a vehicle
+    -- 如果之前被保護為載具
     if protectedVehicles[netId] or protectedVehicles[plate] then
         return true
     end
     
-    -- Entity owner check
+    -- 實體擁有者檢查
     local owner = NetworkGetEntityOwner(vehicle)
     if owner ~= nil then
-        -- PopType 7 = Random/NPC vehicle, others are usually player/script vehicles
+        -- PopType 7 = 隨機/NPC 載具，其他通常是玩家/腳本載具
         if GetEntityPopulationType(vehicle) ~= 7 then
-            -- Mark as player vehicle
+            -- 標記為玩家載具
             protectedVehicles[netId] = true
             protectedVehicles[plate] = true
             return true
         end
     end
     
-    -- Check if there is a player in the vehicle
+    -- 檢查載具內是否有玩家
     local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
     for seat = -1, maxPassengers do
         local ped = GetPedInVehicleSeat(vehicle, seat)
         if DoesEntityExist(ped) and IsPedAPlayer(ped) then
-            -- Mark as player vehicle
+            -- 標記為玩家載具
             protectedVehicles[netId] = true
             protectedVehicles[plate] = true
             return true
         end
     end
     
-    -- Check by model type (some vehicles are always protected)
+    -- 根據模型類型檢查（某些載具始終受保護）
     local vehModel = GetEntityModel(vehicle)
     local vehClass = GetVehicleClass(vehicle)
     
-    -- Special vehicles, emergency vehicles, or rare vehicles are always protected
-    if vehClass == 18 or vehClass == 19 or vehClass == 15 then -- Emergency, police, etc.
+    -- 特殊載具、緊急載具或稀有載具始終受保護
+    if vehClass == 18 or vehClass == 19 or vehClass == 15 then -- 緊急、警察等
         protectedVehicles[netId] = true
         protectedVehicles[plate] = true
         return true
@@ -315,29 +314,29 @@ local function IsPlayerOwnedVehicle(vehicle)
     return false
 end
 
--- Vehicle Spawn Check
+-- 載具生成檢查
 local function ShouldSpawnVehicle()
     local chance = isPlayerStatic and 0.3 or 0.7
     return math.random() < chance
 end
 
--- NPC Vehicle Sync Check
+-- NPC 載具同步檢查
 local function CheckVehicleSync(vehicle)
     if not IsEntityValid(vehicle) then return false end
     
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
     if netId == 0 then return false end
     
-    -- If vehicle is already synced
+    -- 如果載具已經同步
     if syncedVehicles[netId] then
         return true
     end
     
-    -- If vehicle is close to another player
+    -- 如果載具接近其他玩家
     local vehicleCoords = GetEntityCoords(vehicle)
     local found = false
     
-    -- Check all players
+    -- 檢查所有玩家
     for i = 0, 32 do
         if NetworkIsPlayerActive(i) then
             local ped = GetPlayerPed(i)
@@ -345,7 +344,7 @@ local function CheckVehicleSync(vehicle)
                 local playerCoords = GetEntityCoords(ped)
                 local dist = #(vehicleCoords - playerCoords)
                 
-                -- If vehicle is close to another player (50.0 units)
+                -- 如果載具接近其他玩家（50.0 單位）
                 if dist < 50.0 then
                     found = true
                     break
@@ -354,7 +353,7 @@ local function CheckVehicleSync(vehicle)
         end
     end
     
-    -- If vehicle is close to other players, sync it
+    -- 如果載具接近其他玩家，同步它
     if found then
         syncedVehicles[netId] = true
         NetworkRequestControlOfEntity(vehicle)
@@ -365,14 +364,14 @@ local function CheckVehicleSync(vehicle)
     return false
 end
 
--- Vehicle Management Function (Player Protected)
+-- 載具管理函數（玩家保護）
 local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
-    -- If vehicle is invalid, do not process
+    -- 如果載具無效，不處理
     if not IsEntityValid(vehicle) then
         return vehicleCount
     end
     
-    -- Player vehicle check
+    -- 玩家載具檢查
     if vehicle == playerVehicle then
         if NetworkGetEntityIsNetworked(vehicle) then
             local netId = NetworkGetNetworkIdFromEntity(vehicle)
@@ -383,20 +382,20 @@ local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
         return vehicleCount
     end
     
-    -- Sync check
+    -- 同步檢查
     if CheckVehicleSync(vehicle) then
-        return vehicleCount -- Synced vehicle
+        return vehicleCount -- 已同步的載具
     end
     
-    -- Enhanced player vehicle check
+    -- 增強的玩家載具檢查
     if IsPlayerOwnedVehicle(vehicle) then
-        return vehicleCount  -- Player vehicle, do not process
+        return vehicleCount  -- 玩家載具，不處理
     end
 
-    -- From here on, it's for NPC vehicles
+    -- 從這裡開始，處理 NPC 載具
     local vehHandle = NetworkGetEntityIsNetworked(vehicle) and NetworkGetNetworkIdFromEntity(vehicle) or 0
     if vehHandle == 0 then
-        return vehicleCount -- Invalid network ID, skip this vehicle
+        return vehicleCount -- 無效的網路 ID，跳過此載具
     end
     
     local cachedVehicle = GetCachedEntity("vehicles", vehHandle)
@@ -406,22 +405,22 @@ local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
     if distance < vehicleSpawnDistance then
         vehicleCount = vehicleCount + 1
         
-        -- If player is stationary or vehicle limit exceeded
+        -- 如果玩家靜止或超過載具限制
         if (isPlayerStatic and vehicleCount > maxVehiclesInArea * staticPositionMultiplier) or 
            vehicleCount > maxVehiclesInArea then
-            -- Check all NPCs in the vehicle and delete it with the vehicle
+            -- 檢查載具內所有 NPC 並隨載具一起刪除
             local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
-            for seat = -1, maxPassengers do -- -1 sürücü koltuğu
+            for seat = -1, maxPassengers do -- -1 是駕駛座
                 local pedInSeat = GetPedInVehicleSeat(vehicle, seat)
                 if DoesEntityExist(pedInSeat) and not IsPedAPlayer(pedInSeat) then
-                    -- Delete NPC with the vehicle
+                    -- 將 NPC 與載具一起刪除
                     FadeOutEntity(pedInSeat)
                 end
             end
             
-            -- Check again
+            -- 再次檢查
             if not IsPlayerOwnedVehicle(vehicle) then
-                -- Then delete the vehicle
+                -- 然後刪除載具
                 FadeOutEntity(vehicle)
             end
             return vehicleCount
@@ -436,18 +435,18 @@ local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
             lastSeen = currentTime
         })
 
-        -- If vehicle is not on screen and player is stationary, delete faster
+        -- 如果載具不在螢幕上且玩家靜止，更快刪除
         local invisibleTimeout = isPlayerStatic and (cleanupTime * 0.6) or cleanupTime
         
         if not IsEntityOnScreen(vehicle) then
             if not invisibleVehicleTimers[vehPlate] then
                 invisibleVehicleTimers[vehPlate] = currentTime
             elseif currentTime - invisibleVehicleTimers[vehPlate] > invisibleTimeout then
-                    -- Check again if player vehicle
+                    -- 再次檢查是否為玩家載具
                 if not IsPlayerOwnedVehicle(vehicle) then
-                    -- Delete NPCs with the vehicle
+                    -- 將 NPC 與載具一起刪除
                     local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
-                    for seat = -1, maxPassengers do -- -1 sürücü koltuğu
+                    for seat = -1, maxPassengers do -- -1 是駕駛座
                         local pedInSeat = GetPedInVehicleSeat(vehicle, seat)
                         if DoesEntityExist(pedInSeat) and not IsPedAPlayer(pedInSeat) then
                             FadeOutEntity(pedInSeat)
@@ -466,39 +465,39 @@ local function ManageVehicle(vehicle, playerCoords, playerVehicle, vehicleCount)
     return vehicleCount
 end
 
--- NPC Management Function (Updated)
+-- NPC 管理函數（更新版）
 local function ManagePed(ped, playerCoords, pedCount)
     if not IsEntityValid(ped) or IsPedAPlayer(ped) then
         return pedCount
     end
 
-    -- If NPC is in a vehicle, leave it to vehicle management
+    -- 如果 NPC 在載具內，交給載具管理
     local pedVehicle = GetVehiclePedIsIn(ped, false)
     if pedVehicle ~= 0 then
-        -- If player vehicle, definitely do not touch
+        -- 如果是玩家載具，絕對不碰
         if IsPlayerOwnedVehicle(pedVehicle) then
             return pedCount
         end
-        -- NPC in a vehicle, leave it to vehicle management
+        -- 載具內的 NPC，交給載具管理
         return pedCount
     end
 
     local pedHandle = NetworkGetEntityIsNetworked(ped) and NetworkGetNetworkIdFromEntity(ped) or 0
     if pedHandle == 0 then
-        return pedCount -- Invalid network ID, skip this NPC
+        return pedCount -- 無效的網路 ID，跳過此 NPC
     end
     
     local cachedPed = GetCachedEntity("peds", pedHandle)
     local pedCoords = cachedPed and cachedPed.coords or GetEntityCoords(ped)
     local distance = #(pedCoords - playerCoords)
     
-    -- If player is stationary, shorten NPC distance
+    -- 如果玩家靜止，縮短 NPC 距離
     local activeSpawnDistance = isPlayerStatic and (pedSpawnDistance * 0.7) or pedSpawnDistance
     
     if distance < activeSpawnDistance then
         pedCount = pedCount + 1
         
-        -- If player is stationary or NPC limit exceeded
+        -- 如果玩家靜止或超過 NPC 限制
         if (isPlayerStatic and pedCount > maxPedsInArea * staticPositionMultiplier) or 
            pedCount > maxPedsInArea then
             FadeOutEntity(ped)
@@ -512,7 +511,7 @@ local function ManagePed(ped, playerCoords, pedCount)
             lastSeen = currentTime
         })
 
-        -- If NPC is not on screen and player is stationary, delete faster
+        -- 如果 NPC 不在螢幕上且玩家靜止，更快刪除
         local invisibleTimeout = isPlayerStatic and (cleanupTime * 0.6) or cleanupTime
         
         if not IsEntityOnScreen(ped) then
@@ -530,15 +529,15 @@ local function ManagePed(ped, playerCoords, pedCount)
     return pedCount
 end
 
--- Player Vehicles Scan and Protection Function
+-- 玩家載具掃描和保護函數
 local function ScanAndProtectPlayerVehicles()
     local playerCount = GetNumberOfPlayers()
     
-    -- Scan all players
+    -- 掃描所有玩家
     for i = 0, playerCount - 1 do
         local ped = GetPlayerPed(i)
         if DoesEntityExist(ped) then
-            -- Check if player has a current vehicle
+            -- 檢查玩家是否有當前載具
             local vehicle = GetVehiclePedIsIn(ped, false)
             if DoesEntityExist(vehicle) and NetworkGetEntityIsNetworked(vehicle) then
                 local netId = NetworkGetNetworkIdFromEntity(vehicle)
@@ -549,11 +548,11 @@ local function ScanAndProtectPlayerVehicles()
         end
     end
     
-    -- Scan all vehicles and mark player-owned vehicles
+    -- 掃描所有載具並標記玩家擁有的載具
     local vehicles = GetGamePool('CVehicle')
     for _, vehicle in ipairs(vehicles) do
         if DoesEntityExist(vehicle) then
-            -- Check if there is a player in the vehicle
+            -- 檢查載具內是否有玩家
             local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
             for seat = -1, maxPassengers do
                 local ped = GetPedInVehicleSeat(vehicle, seat)
@@ -568,7 +567,7 @@ local function ScanAndProtectPlayerVehicles()
                 end
             end
             
-            -- Is the entity owner a player?
+            -- 實體擁有者是玩家嗎？
             if NetworkGetEntityOwner(vehicle) ~= nil then
                 if GetEntityPopulationType(vehicle) ~= 7 then
                     if NetworkGetEntityIsNetworked(vehicle) then
@@ -583,7 +582,7 @@ local function ScanAndProtectPlayerVehicles()
     end
 end
 
--- Main Vehicle Management Loop
+-- 主要載具管理循環
 CreateThread(function()
     while true do
         local playerPed = PlayerPedId()
@@ -593,7 +592,7 @@ CreateThread(function()
             AdjustDensityBasedOnConditions(playerCoords)
             CleanupCache()
             
-            -- Regularly scan player vehicles
+            -- 定期掃描玩家載具
             playerVehicleChecksCounter = playerVehicleChecksCounter + 1
             if playerVehicleChecksCounter >= 10 then
                 ScanAndProtectPlayerVehicles()
@@ -602,7 +601,7 @@ CreateThread(function()
             
             local playerVehicle = GetVehiclePedIsIn(playerPed, false)
             if DoesEntityExist(playerVehicle) and NetworkGetEntityIsNetworked(playerVehicle) then
-                -- Always protect player vehicle
+                -- 始終保護玩家載具
                 local netId = NetworkGetNetworkIdFromEntity(playerVehicle)
                 local plate = GetVehicleNumberPlateText(playerVehicle) or "unknown"
                 protectedVehicles[netId] = true
@@ -621,7 +620,7 @@ CreateThread(function()
     end
 end)
 
--- Main NPC Management Loop
+-- 主要 NPC 管理循環
 CreateThread(function()
     while true do
         local playerPed = PlayerPedId()
@@ -643,13 +642,13 @@ CreateThread(function()
     end
 end)
 
--- New Extra Traffic Control Mechanism
+-- 新增額外交通控制機制
 CreateThread(function()
     while true do
         local playerPed = PlayerPedId()
         
         if DoesEntityExist(playerPed) then
-            -- If player is stationary, clean up surrounding vehicles aggressively
+            -- 如果玩家靜止，積極清理周圍載具
             if isPlayerStatic then
                 local playerCoords = GetEntityCoords(playerPed)
                 local vehicles = GetGamePool('CVehicle')
@@ -660,9 +659,9 @@ CreateThread(function()
                         local vehCoords = GetEntityCoords(vehicle)
                         local dist = #(vehCoords - playerCoords)
                         
-                        -- If player is stationary and vehicle is a certain distance away, add a chance to delete randomly
+                        -- 如果玩家靜止且載具在一定距離內，添加隨機刪除機會
                         if dist < 70.0 and dist > vehicleSpawnDistance and math.random() < 0.4 then
-                            -- Check again if player vehicle
+                            -- 再次檢查是否為玩家載具
                             if not IsPlayerOwnedVehicle(vehicle) then
                                 local maxPassengers = GetVehicleMaxNumberOfPassengers(vehicle)
                                 for seat = -1, maxPassengers do
@@ -679,12 +678,12 @@ CreateThread(function()
             end
         end
         
-        -- If player is stationary, run more frequently
+        -- 如果玩家靜止，更頻繁執行
         Wait(isPlayerStatic and 2000 or 5000)
     end
 end)
 
--- Police and Dispatch Control
+-- 警察和派遣控制
 if DisableCops or DisableDispatch then
     CreateThread(function()
         while true do
@@ -705,10 +704,10 @@ if DisableCops or DisableDispatch then
     end)
 end
 
--- Adjust GTA's Traffic Spawn System
+-- 調整 GTA 的交通生成系統
 CreateThread(function()
     while true do
-        -- Directly control traffic density
+        -- 直接控制交通密度
         SetRandomBoats(false)
         SetGarbageTrucks(false)
         SetRandomTrains(false)
@@ -718,9 +717,9 @@ CreateThread(function()
         SetVehicleModelIsSuppressed(GetHashKey("phantom"), true)
         SetVehicleModelIsSuppressed(GetHashKey("pounder"), true)
         
-        -- If player is stationary, additional restrictions
+        -- 如果玩家靜止，額外限制
         if isPlayerStatic then
-            -- When player is stationary, reduce traffic density even more
+            -- 當玩家靜止時，更大幅度降低交通密度
             SetParkedVehicleDensityMultiplierThisFrame(VehicleDensityMultiplier * 0.5)
             SetVehicleDensityMultiplierThisFrame(VehicleDensityMultiplier * 0.5)
             SetRandomVehicleDensityMultiplierThisFrame(VehicleDensityMultiplier * 0.5)
@@ -730,8 +729,8 @@ CreateThread(function()
     end
 end)
 
--- Immediately protect player vehicles at the start
+-- 啟動時立即保護玩家載具
 CreateThread(function()
-    Wait(1000) -- Wait for the game to load
+    Wait(1000) -- 等待遊戲載入
     ScanAndProtectPlayerVehicles()
 end)
